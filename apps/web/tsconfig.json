@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@crm/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": [
