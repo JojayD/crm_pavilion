@@ -29,8 +29,22 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const isAuthRoute = pathname.startsWith("/auth");
+
+  // Unauthenticated users can only access /auth/* routes
+  if (!user && !isAuthRoute) {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
+  // Authenticated users are redirected away from /auth/* routes
+  if (user && isAuthRoute) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   return supabaseResponse;
 }

@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import { DrizzleModule } from './database/drizzle.module';
 import { AuthModule } from './auth/auth.module';
 import { QueueModule } from './queue/queue.module';
+import { ContactsModule } from './contacts/contacts.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { QueueModule } from './queue/queue.module';
     DrizzleModule,
     AuthModule,
     QueueModule,
+    ContactsModule,
+    AnnouncementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
