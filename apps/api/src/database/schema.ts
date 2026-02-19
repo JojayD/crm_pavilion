@@ -51,6 +51,7 @@ export const announcementRecipients = pgTable('announcement_recipients', {
   contactId: uuid('contact_id').notNull().references(() => contacts.id, { onDelete: 'cascade' }),
   status: recipientStatusEnum('status').default('pending').notNull(),
   sentAt: timestamp('sent_at'),
+  viewedAt: timestamp('viewed_at'),
   error: text('error'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -116,3 +117,5 @@ export const workflowExecutions = pgTable('workflow_executions', {
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+

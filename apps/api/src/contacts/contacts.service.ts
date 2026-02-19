@@ -3,11 +3,24 @@ import { DRIZZLE } from '../database/drizzle.module';
 import * as schema from '../database/schema';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
-import { and, eq } from 'drizzle-orm';
+import { and, arrayContains, desc, eq } from 'drizzle-orm';
 
 @Injectable()
 export class ContactsService {
   constructor(@Inject(DRIZZLE) private readonly db: any) { }
+
+  async findAll(userId: string, filters?: { company?: string; tag?: string; status?: string }) {
+    const conditions = [eq(schema.contacts.userId, userId)];
+    if (filters?.company) conditions.push(eq(schema.contacts.company, filters.company));
+    if (filters?.tag) conditions.push(arrayContains(schema.contacts.tags, [filters.tag]));
+    if (filters?.status) conditions.push(eq(schema.contacts.status, filters.status as any));
+
+    return this.db
+      .select()
+      .from(schema.contacts)
+      .where(and(...conditions))
+      .orderBy(desc(schema.contacts.createdAt));
+  }
 
   async create(userId: string, dto: CreateContactDto) {
     if (dto.email) {

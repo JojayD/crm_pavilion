@@ -1,0 +1,1 @@
+ALTER TABLE "announcement_recipients" ADD COLUMN "viewed_at" timestamp;

@@ -1,4 +1,4 @@
-import { Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Post, Put, Req, Patch,UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { SupabaseGuard } from '../auth/supabase.guard';
 import { ContactsService } from './contacts.service';
@@ -9,6 +9,13 @@ import { UpdateContactDto } from './dto/update-contact.dto';
 @Controller('contacts')
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
+
+  @Get()
+  async findAll(@Req() req: Request, @Query() query: { company?: string; tag?: string; status?: string }) {
+    const user = (req as any).user;
+    const contacts = await this.contactsService.findAll(user.id, query);
+    return { success: true, message: 'Contacts fetched successfully', data: contacts };
+  }
 
   @Post()
   async create(@Body() dto: CreateContactDto, @Req() req: Request) {
