@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { QueueModule } from './queue/queue.module';
 import { ContactsModule } from './contacts/contacts.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { SequencesModule } from './sequences/sequences.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     QueueModule,
     ContactsModule,
     AnnouncementsModule,
+    SequencesModule,
+    WorkflowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

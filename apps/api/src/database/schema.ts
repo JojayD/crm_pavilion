@@ -1,23 +1,18 @@
 import { pgTable, uuid, text, timestamp, boolean, pgEnum, integer, jsonb, index } from 'drizzle-orm/pg-core';
 
+//Enums 
 export const statusEnum = pgEnum('status', ['active', 'inactive']);
-
 export const channelEnum = pgEnum('channel', ['email', 'sms', 'push']);
-
 export const announcementStatusEnum = pgEnum('announcement_status', ['draft', 'sent']);
-
 export const sequenceStatusEnum = pgEnum('sequence_status', ['draft', 'active', 'paused']);
-
 export const enrollmentStatusEnum = pgEnum('enrollment_status', ['active', 'paused', 'completed', 'cancelled']);
-
 export const workflowStatusEnum = pgEnum('workflow_status', ['draft', 'active', 'paused']);
-
 export const triggerTypeEnum = pgEnum('trigger_type', ['contact_created', 'tag_added', 'scheduled', 'member_inactive']);
-
 export const actionTypeEnum = pgEnum('action_type', ['send_message', 'add_to_sequence', 'add_tag']);
-
 export const executionStatusEnum = pgEnum('execution_status', ['pending', 'completed', 'failed', 'skipped']);
+export const recipientStatusEnum = pgEnum('recipient_status', ['pending', 'sent', 'failed']);
 
+//Contact schema
 export const contacts = pgTable('contacts', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull(),
@@ -32,6 +27,7 @@ export const contacts = pgTable('contacts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+//Announcement schema
 export const announcements = pgTable('announcements', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull(),
@@ -43,7 +39,6 @@ export const announcements = pgTable('announcements', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-export const recipientStatusEnum = pgEnum('recipient_status', ['pending', 'sent', 'failed']);
 
 export const announcementRecipients = pgTable('announcement_recipients', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -55,7 +50,7 @@ export const announcementRecipients = pgTable('announcement_recipients', {
   error: text('error'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
-
+//Sequence schema
 export const sequences = pgTable('sequences', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull(),
@@ -87,6 +82,20 @@ export const sequenceEnrollments = pgTable('sequence_enrollments', {
   index('idx_enrollments_next_step').on(t.nextStepAt, t.status),
 ]);
 
+export const sequenceStepLogs = pgTable('sequence_step_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  enrollmentId: uuid('enrollment_id').notNull().references(() => sequenceEnrollments.id, { onDelete: 'cascade' }),
+  stepId: uuid('step_id').notNull().references(() => sequenceSteps.id, { onDelete: 'cascade' }),
+  channel: channelEnum('channel').notNull(),
+  contentSnapshot: text('content_snapshot').notNull(),
+  status: executionStatusEnum('status').default('pending').notNull(),
+  sentAt: timestamp('sent_at'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+//Workflow schmeas
+
 export const workflows = pgTable('workflows', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull(),
@@ -117,5 +126,7 @@ export const workflowExecutions = pgTable('workflow_executions', {
   completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+
 
 

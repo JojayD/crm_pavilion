@@ -22,7 +22,7 @@ export default async function Home() {
     <div className="flex min-h-screen flex-col bg-zinc-50">
       <header className="border-b bg-white px-6 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-lg font-semibold">CRM Pavilion</h1>
+          <h1 className="text-lg font-semibold">Supa Cool CRM</h1>
           <form action={signOut}>
             <button
               type="submit"

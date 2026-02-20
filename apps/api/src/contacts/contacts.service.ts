@@ -4,10 +4,14 @@ import * as schema from '../database/schema';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { and, arrayContains, desc, eq } from 'drizzle-orm';
+import { WorkflowsService } from '../workflows/workflows.service';
 
 @Injectable()
 export class ContactsService {
-  constructor(@Inject(DRIZZLE) private readonly db: any) { }
+  constructor(
+    @Inject(DRIZZLE) private readonly db: any,
+    private readonly workflowsService: WorkflowsService,
+  ) {}
 
   async findAll(userId: string, filters?: { company?: string; tag?: string; status?: string }) {
     const conditions = [eq(schema.contacts.userId, userId)];
@@ -35,15 +39,36 @@ export class ContactsService {
       .insert(schema.contacts)
       .values({ ...dto, userId })
       .returning();
+
+    await this.workflowsService.triggerEvent('contact_created', contact.id, userId);
+
     return contact;
   }
 
   async update(userId: string, id: string, dto: UpdateContactDto) {
+    // Detect newly added tags to fire tag_added workflow triggers
+    let addedTags: string[] = [];
+    if (dto.tags !== undefined) {
+      const [existing] = await this.db
+        .select({ tags: schema.contacts.tags })
+        .from(schema.contacts)
+        .where(and(eq(schema.contacts.id, id), eq(schema.contacts.userId, userId)));
+      const existingTags = existing?.tags ?? [];
+      addedTags = (dto.tags ?? []).filter((t: string) => !existingTags.includes(t));
+    }
+
     const [contact] = await this.db
       .update(schema.contacts)
       .set({ ...dto, updatedAt: new Date() })
       .where(and(eq(schema.contacts.id, id), eq(schema.contacts.userId, userId)))
       .returning();
+
+    if (contact) {
+      for (const tag of addedTags) {
+        await this.workflowsService.triggerEvent('tag_added', contact.id, userId, { tag });
+      }
+    }
+
     return contact;
   }
 

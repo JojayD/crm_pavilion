@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateContactDto {
   @IsString()
@@ -16,4 +16,9 @@ export class CreateContactDto {
   @IsString()
   @IsOptional()
   company?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
 }
