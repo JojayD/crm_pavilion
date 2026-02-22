@@ -1,4 +1,6 @@
-import { IsArray, IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEmail, IsOptional, IsString, IsEnum } from 'class-validator';
+
+const ContactStatus = { active: 'active', inactive: 'inactive' } as const;
 
 export class UpdateContactDto {
   @IsString()
@@ -21,4 +23,8 @@ export class UpdateContactDto {
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
+
+  @IsEnum(ContactStatus)
+  @IsOptional()
+  status?: string;
 }

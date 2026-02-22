@@ -1,0 +1,1 @@
+ALTER TABLE "sequence_steps" ADD COLUMN "send_hour" integer DEFAULT 9 NOT NULL;

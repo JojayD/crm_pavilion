@@ -66,6 +66,7 @@ export const sequenceSteps = pgTable('sequence_steps', {
   stepOrder: integer('step_order').notNull(),
   channel: channelEnum('channel').notNull(),
   content: text('content').notNull(),
+  sendHour: integer('send_hour').default(9).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

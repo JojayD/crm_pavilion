@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateStepDto {
   @IsInt()
@@ -18,4 +18,10 @@ export class UpdateStepDto {
   @IsString()
   @IsOptional()
   content?: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  @IsOptional()
+  sendHour?: number;
 }

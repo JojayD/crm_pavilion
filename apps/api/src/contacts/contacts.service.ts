@@ -24,6 +24,7 @@ export class ContactsService {
       .from(schema.contacts)
       .where(and(...conditions))
       .orderBy(desc(schema.contacts.createdAt));
+
   }
 
   async create(userId: string, dto: CreateContactDto) {

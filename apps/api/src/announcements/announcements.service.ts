@@ -59,16 +59,21 @@ export class AnnouncementsService {
     if (!announcement) throw new NotFoundException('Announcement not found');
     if (announcement.status === 'sent') throw new BadRequestException('Announcement has already been sent');
 
-    // Set A — filter-based contacts (always userId-scoped)
-    const conditions = [eq(schema.contacts.userId, userId)];
-    if (filters.company) conditions.push(eq(schema.contacts.company, filters.company));
-    if (filters.tag)     conditions.push(arrayContains(schema.contacts.tags, [filters.tag]));
-    if (filters.status)  conditions.push(eq(schema.contacts.status, filters.status as any));
-    const filterContacts = await this.db.select().from(schema.contacts).where(and(...conditions));
-
+    // Set A — filter-based contacts (only run when needed)
     const filtersApplied = !!(filters.company || filters.tag || filters.status);
-    if (filtersApplied && filterContacts.length === 0) {
-      throw new BadRequestException('No contacts matched the specified filters');
+    const hasExplicitIds = !!(filters.contactIds?.length);
+
+    let filterContacts: any[] = [];
+    if (filtersApplied || !hasExplicitIds) {
+      const conditions = [eq(schema.contacts.userId, userId)];
+      if (filters.company) conditions.push(eq(schema.contacts.company, filters.company));
+      if (filters.tag)     conditions.push(arrayContains(schema.contacts.tags, [filters.tag]));
+      if (filters.status)  conditions.push(eq(schema.contacts.status, filters.status as any));
+      filterContacts = await this.db.select().from(schema.contacts).where(and(...conditions));
+
+      if (filtersApplied && filterContacts.length === 0) {
+        throw new BadRequestException('No contacts matched the specified filters');
+      }
     }
 
     // Set B — explicitly selected contacts (userId-gated)

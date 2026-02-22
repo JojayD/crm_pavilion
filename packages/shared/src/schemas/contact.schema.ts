@@ -8,6 +8,8 @@ export const ContactSchema = z.object({
   phone: z.string().nullable().optional(),
   company: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+  tags: z.array(z.string()).default([]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -18,6 +20,8 @@ export const CreateContactSchema = z.object({
   phone: z.string().optional(),
   company: z.string().optional(),
   notes: z.string().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+  tags: z.array(z.string()).default([]),
 });
 
 export const UpdateContactSchema = CreateContactSchema.partial();

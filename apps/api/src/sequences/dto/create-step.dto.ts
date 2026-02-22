@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateStepDto {
   @IsInt()
@@ -15,4 +15,10 @@ export class CreateStepDto {
   @IsString()
   @IsNotEmpty()
   content: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  @IsOptional()
+  sendHour?: number;
 }

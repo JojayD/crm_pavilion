@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { asc, and, eq } from 'drizzle-orm';
+import { asc, and, eq, sql } from 'drizzle-orm';
 import { Queue } from 'bullmq';
 import { DRIZZLE } from '../database/drizzle.module';
 import * as schema from '../database/schema';
@@ -19,10 +19,19 @@ export class SequencesService {
     @InjectQueue('sequence-step') private readonly sequenceQueue: Queue,
   ) {}
 
-  // Sequences 
+  // Sequences
   async findAll(userId: string) {
     return this.db
-      .select()
+      .select({
+        id: schema.sequences.id,
+        name: schema.sequences.name,
+        status: schema.sequences.status,
+        createdAt: schema.sequences.createdAt,
+        stepCount: sql<number>`(
+          select count(*) from sequence_steps
+          where sequence_steps.sequence_id = ${schema.sequences.id}
+        )`.mapWith(Number),
+      })
       .from(schema.sequences)
       .where(eq(schema.sequences.userId, userId));
   }
@@ -32,7 +41,7 @@ export class SequencesService {
       .select()
       .from(schema.sequences)
       .where(and(eq(schema.sequences.id, id), eq(schema.sequences.userId, userId)));
-
+    console.log(sequence);
     if (!sequence) throw new NotFoundException('Sequence not found');
     return sequence;
   }
@@ -159,7 +168,11 @@ export class SequencesService {
 
     const firstStep = steps[0];
     const enrolledAt = new Date();
-    const nextStepAt = new Date(enrolledAt.getTime() + firstStep.dayOffset * 24 * 60 * 60 * 1000);
+    const target = new Date(enrolledAt);
+    target.setUTCDate(target.getUTCDate() + firstStep.dayOffset);
+    target.setUTCHours(firstStep.sendHour ?? 9, 0, 0, 0);
+    if (target <= enrolledAt) target.setUTCDate(target.getUTCDate() + 1);
+    const nextStepAt = target;
 
     const [enrollment] = await this.db
       .insert(schema.sequenceEnrollments)
@@ -304,7 +317,12 @@ export class SequencesService {
 
     if (nextStep) {
       // Advance enrollment to the next step and schedule it
-      const nextStepAt = new Date(Date.now() + nextStep.dayOffset * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      const target = new Date(now);
+      target.setUTCDate(target.getUTCDate() + nextStep.dayOffset);
+      target.setUTCHours(nextStep.sendHour ?? 9, 0, 0, 0);
+      if (target <= now) target.setUTCDate(target.getUTCDate() + 1);
+      const nextStepAt = target;
 
       await this.db
         .update(schema.sequenceEnrollments)
