@@ -24,7 +24,7 @@ import {
 } from "@crm/shared";
 
 import { useCreateAnnouncement, useSendAnnouncement } from "@/lib/hooks/use-announcements";
-import { ContactSearchCombobox } from "@/components/announcements/contact-search-combobox";
+import { ContactSearchCombobox } from "@/components/shared/contact-search-combobox";
 import { useContacts } from "@/lib/hooks/use-contacts";
 
 

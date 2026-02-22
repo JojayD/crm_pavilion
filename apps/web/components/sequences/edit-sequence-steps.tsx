@@ -23,6 +23,7 @@ import {
   useAddStep,
   useDeleteStep,
 } from "@/lib/hooks/use-sequences";
+import { SequenceEnrollPanel } from "@/components/sequences/sequence-enroll-panel";
 import { SequenceChannel } from "@crm/shared";
 import {
   SUPPORTED_SEND_TIMEZONES,
@@ -50,6 +51,7 @@ export function EditSequenceSteps({ sequenceId }: Props) {
   const addStep = useAddStep(sequenceId);
   const deleteStep = useDeleteStep(sequenceId);
 
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [dayOffset, setDayOffset] = useState(0);
   const [channel, setChannel] = useState<SequenceChannel>("email");
   const [content, setContent] = useState("");
@@ -83,12 +85,12 @@ export function EditSequenceSteps({ sequenceId }: Props) {
     setSendHour(9);
   }
 
+
   async function handlePublish() {
     await updateSequence.mutateAsync({
       id: sequenceId,
       data: { status: "active" },
     });
-    router.push("/sequences");
   }
 
   return (
@@ -285,10 +287,20 @@ export function EditSequenceSteps({ sequenceId }: Props) {
                     <button
                       type="button"
                       aria-label="Delete step"
-                      onClick={() => deleteStep.mutate(step.id)}
-                      className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                      onClick={() => {
+                        if (confirmingDeleteId !== step.id) {
+                          setConfirmingDeleteId(step.id);
+                        } else {
+                          deleteStep.mutate(step.id);
+                          setConfirmingDeleteId(null);
+                        }
+                      }}
+                      className={confirmingDeleteId === step.id
+                        ? "flex-shrink-0 rounded px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                        : "flex-shrink-0 rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                      }
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {confirmingDeleteId === step.id ? "Confirm?" : <Trash2 className="h-4 w-4" />}
                     </button>
                   </li>
                 ))}
@@ -296,6 +308,14 @@ export function EditSequenceSteps({ sequenceId }: Props) {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Enrollment panel — locked until sequence is published */}
+      <div className="px-6 pb-10">
+        <SequenceEnrollPanel
+          sequenceId={sequenceId}
+          sequenceStatus={sequence?.status ?? "draft"}
+        />
       </div>
     </div>
   );

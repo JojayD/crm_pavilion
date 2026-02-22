@@ -8,6 +8,7 @@ import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { EnrollContactDto } from './dto/enroll-contact.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { BatchEnrollDto } from './dto/batch-enroll.dto';
 
 @UseGuards(SupabaseGuard)
 @Controller('sequences')
@@ -100,6 +101,13 @@ export class SequencesController {
     return { success: true, message: 'Contact enrolled successfully', data };
   }
 
+  @Post(':id/batch-enroll')
+  async batchEnroll(@Param('id') id: string, @Req() req: Request, @Body() dto: BatchEnrollDto) {
+    const user = (req as any).user;
+    const result = await this.sequencesService.batchEnroll(user.id, id, dto);
+    return { success: true, message: 'Enrollment complete', data: result };
+  }
+
   @Get(':id/enrollments')
   async findEnrollments(@Param('id') id: string, @Req() req: Request) {
     const user = (req as any).user;
@@ -119,7 +127,18 @@ export class SequencesController {
     return { success: true, message: 'Enrollment updated successfully', data };
   }
 
-  // Step Logs 
+  @Delete(':id/enrollments/:enrollmentId')
+  async removeEnrollment(
+    @Param('id') id: string,
+    @Param('enrollmentId') enrollmentId: string,
+    @Req() req: Request,
+  ) {
+    const user = (req as any).user;
+    await this.sequencesService.removeEnrollment(user.id, id, enrollmentId);
+    return { success: true, message: 'Enrollment removed' };
+  }
+
+  // Step Logs
 
   @Get(':id/enrollments/:enrollmentId/logs')
   async findStepLogs(

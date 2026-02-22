@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { asc, and, eq, sql } from 'drizzle-orm';
+import { asc, and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 import { Queue } from 'bullmq';
 import { DRIZZLE } from '../database/drizzle.module';
 import * as schema from '../database/schema';
@@ -10,6 +10,7 @@ import { CreateStepDto } from './dto/create-step.dto';
 import { UpdateStepDto } from './dto/update-step.dto';
 import { EnrollContactDto } from './dto/enroll-contact.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { BatchEnrollDto } from './dto/batch-enroll.dto';
 import { ProcessStepJobData } from './sequences.processor';
 
 @Injectable()
@@ -195,6 +196,57 @@ export class SequencesService {
     return enrollment;
   }
 
+  async batchEnroll(userId: string, sequenceId: string, dto: BatchEnrollDto) {
+    // Resolve contacts using the same union/dedup pattern as announcements.service send()
+    const filtersApplied = !!(dto.company || dto.tag || dto.status);
+    const hasExplicitIds = !!(dto.contactIds?.length);
+
+    let filterContacts: any[] = [];
+    if (filtersApplied || !hasExplicitIds) {
+      const conditions = [eq(schema.contacts.userId, userId)];
+      if (dto.company) conditions.push(eq(schema.contacts.company, dto.company));
+      if (dto.tag)     conditions.push(arrayContains(schema.contacts.tags, [dto.tag]));
+      if (dto.status)  conditions.push(eq(schema.contacts.status, dto.status as any));
+      filterContacts = await this.db.select().from(schema.contacts).where(and(...conditions));
+    }
+
+    let explicitContacts: any[] = [];
+    if (dto.contactIds && dto.contactIds.length > 0) {
+      explicitContacts = await this.db
+        .select()
+        .from(schema.contacts)
+        .where(and(
+          eq(schema.contacts.userId, userId),
+          inArray(schema.contacts.id, dto.contactIds),
+        ));
+    }
+
+    const merged = new Map<string, any>();
+    for (const c of filterContacts)   merged.set(c.id, c);
+    for (const c of explicitContacts) merged.set(c.id, c);
+
+    const excludeSet = new Set(dto.excludeContactIds ?? []);
+    const contacts = [...merged.values()].filter(c => !excludeSet.has(c.id));
+
+    let enrolledCount = 0;
+    let skippedCount = 0;
+
+    for (const contact of contacts) {
+      try {
+        await this.enroll(userId, sequenceId, { contactId: contact.id });
+        enrolledCount++;
+      } catch (err) {
+        if (err instanceof BadRequestException) {
+          skippedCount++;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    return { enrolledCount, skippedCount };
+  }
+
   async findEnrollments(userId: string, sequenceId: string) {
     await this.findOne(userId, sequenceId);
 
@@ -236,6 +288,28 @@ export class SequencesService {
       .returning();
 
     return updated;
+  }
+
+  async removeEnrollment(userId: string, sequenceId: string, enrollmentId: string) {
+    await this.findOne(userId, sequenceId);
+
+    const [enrollment] = await this.db
+      .select()
+      .from(schema.sequenceEnrollments)
+      .where(and(
+        eq(schema.sequenceEnrollments.id, enrollmentId),
+        eq(schema.sequenceEnrollments.sequenceId, sequenceId),
+      ));
+
+    if (!enrollment) throw new NotFoundException('Enrollment not found');
+
+    if (enrollment.currentStepIndex !== 0) {
+      throw new BadRequestException('Cannot remove a contact after the sequence has already started');
+    }
+
+    await this.db
+      .delete(schema.sequenceEnrollments)
+      .where(eq(schema.sequenceEnrollments.id, enrollmentId));
   }
 
   // ─── Step Logs ────────────────────────────────────────────────────────────
