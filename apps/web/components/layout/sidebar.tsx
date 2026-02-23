@@ -20,7 +20,6 @@ const navItems = [
   { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Sequences", href: "/sequences", icon: Repeat2 },
   { label: "Workflows", href: "/workflows", icon: Workflow },
-  { label: "Logout", href: "/auth/logout", icon: LogOut },
 ];
 
 type SidebarProps = {
@@ -70,6 +69,17 @@ export function Sidebar({ user }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Logout */}
+      <form action="/auth/logout" className="px-3 pb-2">
+        <button
+          type="submit"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+        >
+          <LogOut className="h-4 w-4 flex-shrink-0 text-gray-400" />
+          Logout
+        </button>
+      </form>
 
       {/* User profile */}
       <div className="flex items-center gap-3 border-t border-gray-200 px-4 py-4">

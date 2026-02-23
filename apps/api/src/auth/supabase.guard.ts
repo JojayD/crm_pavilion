@@ -11,7 +11,8 @@ import type { Request } from 'express';
 @Injectable()
 export class SupabaseGuard implements CanActivate {
   constructor(private readonly config: ConfigService) {}
-
+  
+  //SupabaseGuard is a guard that checks if the user is authenticated
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const authHeader = request.headers['authorization'];

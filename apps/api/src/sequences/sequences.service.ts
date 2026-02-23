@@ -1,7 +1,8 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { asc, and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 import { Queue } from 'bullmq';
+import { ResendService } from 'nestjs-resend';
 import { DRIZZLE } from '../database/drizzle.module';
 import * as schema from '../database/schema';
 import { CreateSequenceDto } from './dto/create-sequence.dto';
@@ -15,9 +16,12 @@ import { ProcessStepJobData } from './sequences.processor';
 
 @Injectable()
 export class SequencesService {
+  private readonly logger = new Logger(SequencesService.name);
+
   constructor(
     @Inject(DRIZZLE) private readonly db: any,
     @InjectQueue('sequence-step') private readonly sequenceQueue: Queue,
+    private readonly resendService: ResendService,
   ) {}
 
   // Sequences
@@ -353,6 +357,16 @@ export class SequencesService {
     const currentStep = steps[enrollment.currentStepIndex];
     if (!currentStep) return;
 
+    const [contact] = await this.db
+      .select()
+      .from(schema.contacts)
+      .where(eq(schema.contacts.id, enrollment.contactId));
+
+    const [sequence] = await this.db
+      .select({ name: schema.sequences.name })
+      .from(schema.sequences)
+      .where(eq(schema.sequences.id, enrollment.sequenceId));
+
     // Insert a log row for this step execution
     const [log] = await this.db
       .insert(schema.sequenceStepLogs)
@@ -366,12 +380,21 @@ export class SequencesService {
       .returning();
 
     try {
-      // TODO: plug in da real stuff in here delivery here (Resend, Twilio, FCM, etc.)
-      // await this.messageDeliveryService.send({
-      //   channel: currentStep.channel,
-      //   contactId: enrollment.contactId,
-      //   content: currentStep.content,
-      // });
+      if (currentStep.channel === 'email') {
+        if (!contact?.email) {
+          throw new Error(`Contact ${enrollment.contactId} has no email address`);
+        }
+        await this.resendService.send({
+          from: process.env.RESEND_FROM_EMAIL ?? 'no-reply@example.com',
+          to: contact.email,
+          subject: sequence?.name ?? 'A message for you',
+          text: currentStep.content,
+        });
+      } else {
+        this.logger.warn(
+          `Channel "${currentStep.channel}" not implemented for sequences — step ${currentStep.id} skipped`,
+        );
+      }
 
       await this.db
         .update(schema.sequenceStepLogs)

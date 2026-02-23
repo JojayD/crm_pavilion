@@ -60,6 +60,7 @@ export class AnnouncementsService {
     if (announcement.status === 'sent') throw new BadRequestException('Announcement has already been sent');
 
     // Set A — filter-based contacts (only run when needed)
+    //filtersApplied is a boolean that checks if the company, tag, or status is provided
     const filtersApplied = !!(filters.company || filters.tag || filters.status);
     const hasExplicitIds = !!(filters.contactIds?.length);
 
@@ -79,6 +80,7 @@ export class AnnouncementsService {
     // Set B — explicitly selected contacts (userId-gated)
     let explicitContacts: any[] = [];
     if (filters.contactIds && filters.contactIds.length > 0) {
+      //takes in the user id of the person who is creating the announcement and the contact ids and returns the contacts
       explicitContacts = await this.db
         .select()
         .from(schema.contacts)
@@ -102,17 +104,19 @@ export class AnnouncementsService {
     }
 
     try {
+      //inserts the contacts into the announcement recipients table
       const inserted = await this.db
         .insert(schema.announcementRecipients)
         .values(contacts.map((c: any) => ({ announcementId: id, contactId: c.id })))
         .returning({ id: schema.announcementRecipients.id });
 
+      //updates the announcement status to sent and sets the sent at date
       const [updated] = await this.db
         .update(schema.announcements)
         .set({ status: 'sent', sentAt: new Date() })
         .where(eq(schema.announcements.id, id))
         .returning();
-
+      //sends the announcement to the contacts
       for (const row of inserted) {
         await this.sendQueue.add('deliver', {
           recipientId: row.id,

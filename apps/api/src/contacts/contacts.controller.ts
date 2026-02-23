@@ -5,6 +5,7 @@ import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 
+//@UseGuards(SupabaseGuard) is a guard that checks if the user is authenticated
 @UseGuards(SupabaseGuard)
 @Controller('contacts')
 export class ContactsController {
