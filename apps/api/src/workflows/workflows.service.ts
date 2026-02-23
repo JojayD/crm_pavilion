@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { and, asc, desc, eq } from 'drizzle-orm';
 import { Queue } from 'bullmq';
+import { ResendService } from 'nestjs-resend';
 import { DRIZZLE } from '../database/drizzle.module';
 import * as schema from '../database/schema';
 import { SequencesService } from '../sequences/sequences.service';
@@ -17,9 +18,10 @@ export class WorkflowsService {
     @Inject(DRIZZLE) private readonly db: any,
     @InjectQueue('workflow-execute') private readonly workflowQueue: Queue,
     private readonly sequencesService: SequencesService,
+    private readonly resendService: ResendService,
   ) {}
 
-  // ─── Workflows CRUD ──────────────────────────────────────────────────────────
+  //  Workflows CRUD
 
   async findAll(userId: string) {
     return this.db
@@ -122,7 +124,7 @@ export class WorkflowsService {
     await this.db.delete(schema.workflowActions).where(eq(schema.workflowActions.id, actionId));
   }
 
-  // ─── Executions ───────────────────────────────────────────────────────────────
+  // Executions 
 
   async findExecutions(userId: string, workflowId: string) {
     await this.findOne(userId, workflowId);
@@ -146,7 +148,7 @@ export class WorkflowsService {
       .orderBy(desc(schema.workflowExecutions.triggeredAt));
   }
 
-  // ─── Trigger (called by ContactsService) ─────────────────────────────────────
+  // Trigger by ContactsService
 
   async triggerEvent(
     type: 'contact_created' | 'tag_added' | 'scheduled' | 'member_inactive',
@@ -177,7 +179,7 @@ export class WorkflowsService {
     }
   }
 
-  // ─── Execute (called by WorkflowsProcessor) ───────────────────────────────────
+  //Execute (called by WorkflowsProcessor) 
 
   async executeWorkflow(workflowId: string, contactId: string, userId: string) {
     const [workflow] = await this.db
@@ -258,8 +260,41 @@ export class WorkflowsService {
       }
 
       case 'send_message': {
-        // TODO: plug in real message delivery (Resend, Twilio, FCM)
+        if (!contact.email) return; // no email, silently skip
+        await this.resendService.send({
+          from: process.env.RESEND_FROM_EMAIL ?? 'no-reply@example.com',
+          to: contact.email,
+          subject: config.subject ?? 'A message for you',
+          text: config.body ?? '',
+        });
         break;
+      }
+    }
+  }
+
+  async triggerScheduledWorkflows(preset: string, hour: number) {
+    const workflows = await this.db.select().from(schema.workflows)
+      .where(and(
+        eq(schema.workflows.triggerType, 'scheduled'),
+        eq(schema.workflows.status, 'active'),
+      ));
+
+    const matchingWorkflows = workflows.filter((w: any) => {
+      const config = w.triggerConfig as any;
+      return config?.preset === preset && Number(config?.hour) === hour;
+    });
+
+    for (const workflow of matchingWorkflows) {
+      const contacts = await this.db.select({ id: schema.contacts.id })
+        .from(schema.contacts)
+        .where(eq(schema.contacts.userId, workflow.userId));
+
+      for (const contact of contacts) {
+        await this.workflowQueue.add('execute-workflow', {
+          workflowId: workflow.id,
+          contactId: contact.id,
+          userId: workflow.userId,
+        } satisfies ExecuteWorkflowJobData);
       }
     }
   }

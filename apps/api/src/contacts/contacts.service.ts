@@ -47,15 +47,21 @@ export class ContactsService {
   }
 
   async update(userId: string, id: string, dto: UpdateContactDto) {
-    // Detect newly added tags to fire tag_added workflow triggers
+    // Fetch existing contact when we need to detect changes (tags or status)
     let addedTags: string[] = [];
-    if (dto.tags !== undefined) {
+    let existingStatus: string | null = null;
+
+    if (dto.tags !== undefined || dto.status !== undefined) {
       const [existing] = await this.db
-        .select({ tags: schema.contacts.tags })
+        .select({ tags: schema.contacts.tags, status: schema.contacts.status })
         .from(schema.contacts)
         .where(and(eq(schema.contacts.id, id), eq(schema.contacts.userId, userId)));
-      const existingTags = existing?.tags ?? [];
-      addedTags = (dto.tags ?? []).filter((t: string) => !existingTags.includes(t));
+
+      if (dto.tags !== undefined) {
+        const existingTags = existing?.tags ?? [];
+        addedTags = (dto.tags ?? []).filter((t: string) => !existingTags.includes(t));
+      }
+      existingStatus = existing?.status ?? null;
     }
 
     const [contact] = await this.db
@@ -67,6 +73,11 @@ export class ContactsService {
     if (contact) {
       for (const tag of addedTags) {
         await this.workflowsService.triggerEvent('tag_added', contact.id, userId, { tag });
+      }
+
+      // Detect status → inactive transition
+      if (dto.status === 'inactive' && existingStatus !== 'inactive') {
+        await this.workflowsService.triggerEvent('member_inactive', contact.id, userId);
       }
     }
 

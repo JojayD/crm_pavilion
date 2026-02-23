@@ -8,6 +8,8 @@ import {
   Megaphone,
   Repeat2,
   Workflow,
+  BarChart,
+  LogOut,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -18,6 +20,7 @@ const navItems = [
   { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Sequences", href: "/sequences", icon: Repeat2 },
   { label: "Workflows", href: "/workflows", icon: Workflow },
+  { label: "Logout", href: "/auth/logout", icon: LogOut },
 ];
 
 type SidebarProps = {
@@ -26,7 +29,6 @@ type SidebarProps = {
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-
   const initials = user.name
     .split(" ")
     .map((n) => n[0])

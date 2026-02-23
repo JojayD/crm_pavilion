@@ -5,6 +5,7 @@ const statusStyles: Record<string, string> = {
   inactive: "bg-gray-100 text-gray-600 hover:bg-gray-100",
   draft: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
   archived: "bg-orange-100 text-orange-700 hover:bg-orange-100",
+  paused: "bg-orange-100 text-orange-700 hover:bg-orange-100",
   pending: "bg-blue-100 text-blue-700 hover:bg-blue-100",
 };
 

@@ -31,7 +31,7 @@ export class SupabaseGuard implements CanActivate {
 
     if (error || !data.user) {
       throw new UnauthorizedException('Invalid or expired token');
-    }
+    } 
 
     (request as any).user = data.user;
     return true;
