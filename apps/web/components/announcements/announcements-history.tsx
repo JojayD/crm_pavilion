@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, MoreHorizontal, Send, FileText } from "lucide-react";
+import { useState } from "react";
+import { Loader2, MoreHorizontal, Send, FileText, Users } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,6 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -23,7 +30,96 @@ import { type Announcement } from "@crm/shared";
 import {
   useAnnouncements,
   useDeleteAnnouncement,
+  useAnnouncementRecipients,
 } from "@/lib/hooks/use-announcements";
+
+// ---------------------------------------------------------------------------
+// Recipients sheet
+// ---------------------------------------------------------------------------
+
+const RECIPIENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  sent: "Sent",
+  failed: "Failed",
+};
+
+const RECIPIENT_STATUS_COLORS: Record<string, string> = {
+  pending: "text-yellow-600",
+  sent: "text-green-600",
+  failed: "text-red-600",
+};
+
+function RecipientsSheet({
+  announcementId,
+  open,
+  onOpenChange,
+}: {
+  announcementId: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { data: recipients, isLoading } = useAnnouncementRecipients(announcementId);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Recipients
+          </SheetTitle>
+        </SheetHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12 text-gray-400">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading recipients…
+          </div>
+        ) : !recipients?.length ? (
+          <p className="py-12 text-center text-sm text-gray-400">
+            No recipients found.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-semibold text-gray-700 text-xs">Contact</TableHead>
+                <TableHead className="font-semibold text-gray-700 text-xs">Status</TableHead>
+                <TableHead className="font-semibold text-gray-700 text-xs">Sent At</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recipients.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="text-sm font-mono text-gray-500 truncate max-w-[140px]">
+                    {r.contactId}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`text-xs font-medium ${RECIPIENT_STATUS_COLORS[r.status] ?? "text-gray-500"}`}
+                    >
+                      {RECIPIENT_STATUS_LABELS[r.status] ?? r.status}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-gray-500">
+                    {r.sentAt
+                      ? new Date(r.sentAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Channel badge
@@ -51,6 +147,7 @@ type RowProps = { announcement: Announcement };
 
 function AnnouncementRow({ announcement }: RowProps) {
   const deleteAnnouncement = useDeleteAnnouncement();
+  const [recipientsOpen, setRecipientsOpen] = useState(false);
 
   const sentDate = announcement.sentAt
     ? new Date(announcement.sentAt).toLocaleDateString("en-US", {
@@ -61,6 +158,7 @@ function AnnouncementRow({ announcement }: RowProps) {
     : "—";
 
   return (
+    <>
     <TableRow>
       {/* Title */}
       <TableCell className="font-medium text-gray-900">
@@ -97,18 +195,15 @@ function AnnouncementRow({ announcement }: RowProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {/* TODO: Add "View Recipients" action that opens a dialog/sheet
-                     showing useAnnouncementRecipients(announcement.id) data.
-                     Each row: contact name, delivery status, sent/viewed timestamps. */}
-            <DropdownMenuItem className="text-blue-600 focus:text-blue-600">
+            <DropdownMenuItem
+              className="text-blue-600 focus:text-blue-600"
+              onSelect={(e) => {
+                e.preventDefault();
+                setRecipientsOpen(true);
+              }}
+            >
               View Recipients
             </DropdownMenuItem>
-            {announcement.status === "draft" && (
-              /* TODO: Wire up a "Resend / Send now" action for draft announcements */
-              <DropdownMenuItem className="text-gray-700">
-                Send Now
-              </DropdownMenuItem>
-            )}
             <DeleteConfirmDialog
               title={`Delete "${announcement.title}"?`}
               description="This action cannot be undone. The announcement and all recipient records will be permanently removed."
@@ -126,6 +221,12 @@ function AnnouncementRow({ announcement }: RowProps) {
         </DropdownMenu>
       </TableCell>
     </TableRow>
+    <RecipientsSheet
+      announcementId={announcement.id}
+      open={recipientsOpen}
+      onOpenChange={setRecipientsOpen}
+    />
+    </>
   );
 }
 
@@ -134,8 +235,6 @@ function AnnouncementRow({ announcement }: RowProps) {
 // ---------------------------------------------------------------------------
 
 export function AnnouncementsHistory() {
-  // TODO: useAnnouncements() will call GET /api/v1/announcements once the
-  //       backend auth + token forwarding is confirmed working end-to-end.
   const { data: announcements, isLoading, isError, error } = useAnnouncements();
 
   if (isLoading) {
