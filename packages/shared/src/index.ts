@@ -4,3 +4,4 @@ export * from "./types/api.types";
 export * from "./types/announcement.types";
 export * from "./types/sequence.types";
 export * from "./types/workflow.types";
+export * from "./types/stats.types";

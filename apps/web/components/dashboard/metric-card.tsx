@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type MetricCardProps = {
   label: string;
   value: string;
-  change: string;
+  change?: string;
   positive?: boolean;
   icon: LucideIcon;
   iconColor: string;
@@ -33,14 +33,16 @@ export function MetricCard({
           >
             <Icon className={cn("h-6 w-6", iconColor)} />
           </div>
-          <span
-            className={cn(
-              "text-sm font-medium",
-              positive ? "text-green-500" : "text-red-500"
-            )}
-          >
-            {change}
-          </span>
+          {change && (
+            <span
+              className={cn(
+                "text-sm font-medium",
+                positive ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {change}
+            </span>
+          )}
         </div>
         <div className="mt-4">
           <p className="text-sm text-gray-500">{label}</p>

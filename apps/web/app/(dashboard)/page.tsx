@@ -1,39 +1,34 @@
-import { Users, Send, Zap } from "lucide-react";
+"use client";
+
+import { Users, Send } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { useStats } from "@/lib/hooks/use-stats";
 
 export default function DashboardPage() {
+  const { data: stats } = useStats();
+
+  const contactCount = stats?.contactCount ?? 0;
+  const messagesSent = stats?.messagesSent ?? 0;
+
   return (
     <div className="flex flex-1 flex-col overflow-auto">
       <DashboardHeader title="Dashboard" />
       <main className="p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <MetricCard
             label="Total Contacts"
-            value="2,840"
-            change="+12%"
-            positive
+            value={contactCount.toLocaleString()}
             icon={Users}
             iconBg="bg-blue-50"
             iconColor="text-blue-500"
           />
           <MetricCard
-            label="Msg Sent (Mo)"
-            value="14.2k"
-            change="+8%"
-            positive
+            label="Messages Sent"
+            value={messagesSent.toLocaleString()}
             icon={Send}
             iconBg="bg-indigo-50"
             iconColor="text-indigo-500"
-          />
-          <MetricCard
-            label="Automation ROI"
-            value="24%"
-            change="+5%"
-            positive
-            icon={Zap}
-            iconBg="bg-orange-50"
-            iconColor="text-orange-500"
           />
         </div>
       </main>

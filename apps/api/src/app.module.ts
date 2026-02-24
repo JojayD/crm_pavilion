@@ -10,6 +10,7 @@ import { ContactsModule } from './contacts/contacts.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { SequencesModule } from './sequences/sequences.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     AnnouncementsModule,
     SequencesModule,
     WorkflowsModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
