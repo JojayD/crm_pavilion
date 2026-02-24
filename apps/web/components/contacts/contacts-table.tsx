@@ -16,19 +16,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 import { useContacts, useDeleteContact } from "@/lib/hooks/use-contacts";
 import { Contact } from "@crm/shared";
 import { UpdateContactDialog } from "@/components/contacts/update-contact-dialog";
@@ -40,79 +31,59 @@ type ContactRowProps = {
 
 function ContactRow({ contact, onEdit }: ContactRowProps) {
   const deleteContact = useDeleteContact();
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <>
-      <TableRow>
-        <TableCell className="font-medium text-gray-900">{contact.name}</TableCell>
-        <TableCell className="text-gray-600">{contact.email ?? "—"}</TableCell>
-        <TableCell className="text-gray-600">{contact.phone ?? "—"}</TableCell>
-        <TableCell className="text-gray-600">{contact.company ?? "—"}</TableCell>
-        <TableCell>
-          <div className="flex flex-wrap gap-1">
-            {contact.tags.length > 0
-              ? contact.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))
-              : <span className="text-gray-400">—</span>}
-          </div>
-        </TableCell>
-        <TableCell>
-          <StatusBadge status={contact.status} />
-        </TableCell>
-        <TableCell>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-blue-600 focus:text-blue-600"
-                onClick={() => onEdit(contact)}
-              >
-                Edit
-              </DropdownMenuItem>
+    <TableRow>
+      <TableCell className="font-medium text-gray-900">{contact.name}</TableCell>
+      <TableCell className="text-gray-600">{contact.email ?? "—"}</TableCell>
+      <TableCell className="text-gray-600">{contact.phone ?? "—"}</TableCell>
+      <TableCell className="text-gray-600">{contact.company ?? "—"}</TableCell>
+      <TableCell>
+        <div className="flex flex-wrap gap-1">
+          {contact.tags.length > 0
+            ? contact.tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs">
+                  {tag}
+                </Badge>
+              ))
+            : <span className="text-gray-400">—</span>}
+        </div>
+      </TableCell>
+      <TableCell>
+        <StatusBadge status={contact.status} />
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-blue-600 focus:text-blue-600"
+              onClick={() => onEdit(contact)}
+            >
+              Edit
+            </DropdownMenuItem>
+            <DeleteConfirmDialog
+              title={`Delete ${contact.name}?`}
+              description="This action cannot be undone. The contact will be permanently removed."
+              onConfirm={() => deleteContact.mutateAsync(contact.id)}
+              isPending={deleteContact.isPending}
+            >
               <DropdownMenuItem
                 className="text-red-600 focus:text-red-600"
-                onClick={() => setConfirmOpen(true)}
+                onSelect={(e) => e.preventDefault()}
               >
                 Delete
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {contact.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The contact will be permanently removed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-              disabled={deleteContact.isPending}
-              onClick={() => deleteContact.mutateAsync(contact.id)}
-            >
-              {deleteContact.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            </DeleteConfirmDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
   );
 }
 

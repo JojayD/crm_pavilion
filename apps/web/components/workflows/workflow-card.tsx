@@ -6,11 +6,10 @@ import { Workflow as WorkflowType } from "@crm/shared";
 import { useDeleteWorkflow } from "@/lib/hooks/use-workflows";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TriggerLabel } from "./trigger-label";
-import { useState } from "react";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 export function WorkflowCard({ workflow }: { workflow: WorkflowType }) {
   const deleteWorkflow = useDeleteWorkflow();
-  const [deleting, setDeleting] = useState(false);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5 flex flex-col gap-4 hover:shadow-sm transition-shadow">
@@ -42,26 +41,20 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowType }) {
         >
           View / Edit
         </Link>
-        <button
-          type="button"
-          aria-label="Delete workflow"
-          onClick={() => {
-            if (!deleting) {
-              setDeleting(true);
-            } else {
-              deleteWorkflow.mutate(workflow.id);
-              setDeleting(false);
-            }
-          }}
-          disabled={deleteWorkflow.isPending}
-          className={
-            deleting
-              ? "rounded px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
-              : "rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
-          }
+        <DeleteConfirmDialog
+          title="Delete workflow?"
+          description="This action cannot be undone. The workflow will be permanently removed."
+          onConfirm={() => deleteWorkflow.mutate(workflow.id)}
+          isPending={deleteWorkflow.isPending}
         >
-          {deleting ? "Confirm?" : <Trash2 className="h-4 w-4" />}
-        </button>
+          <button
+            type="button"
+            aria-label="Delete workflow"
+            className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </DeleteConfirmDialog>
       </div>
     </div>
   );
